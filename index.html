@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<title>Train Scheduler</title>
+
+	<!-- <link rel="icon" sizes="32x32" href="images/train_icon.png"> -->
+
+	<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<!-- <link rel="stylesheet" type="text/css" href="css/style.css"> -->
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/4.5.1/firebase.js"></script>
+	<script src="https://cdn.jsdelivr.net/momentjs/2.12.0/moment.min.js"></script>
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.min.js"></script>
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/x2js/1.2.0/xml2json.min.js"></script>
+
+
+ 	<!-- <script src="javascript/logic.js"></script> -->
+</head>
+<body>
+
+	<script>
+		$(document).ready(function() {
+
+function base64Encode(str) {
+var CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+var out = "", i = 0, len = str.length, c1, c2, c3;
+while (i < len) {
+c1 = str.charCodeAt(i++) & 0xff;
+if (i == len) {
+out += CHARS.charAt(c1 >> 2);
+out += CHARS.charAt((c1 & 0x3) << 4);
+out += "==";
+break;
+}
+c2 = str.charCodeAt(i++);
+if (i == len) {
+out += CHARS.charAt(c1 >> 2);
+out += CHARS.charAt(((c1 & 0x3)<< 4) | ((c2 & 0xF0) >> 4));
+out += CHARS.charAt((c2 & 0xF) << 2);
+out += "=";
+break;
+}
+c3 = str.charCodeAt(i++);
+out += CHARS.charAt(c1 >> 2);
+out += CHARS.charAt(((c1 & 0x3) << 4) | ((c2 & 0xF0) >> 4));
+out += CHARS.charAt(((c2 & 0xF) << 2) | ((c3 & 0xC0) >> 6));
+out += CHARS.charAt(c3 & 0x3F);
+}
+return out;
+}
+
+
+
+
+			// var crypto = require("crypto-js");
+
+			function getSignatureKey(key, dateStamp, regionName, serviceName) {
+				var kDate = CryptoJS.HmacSHA256(dateStamp, "AWS4" + key);
+				var kRegion = CryptoJS.HmacSHA256(regionName, kDate);
+				var kService = CryptoJS.HmacSHA256(serviceName, kRegion);
+				var kSigning = CryptoJS.HmacSHA256("aws4_request", kService);
+				return kSigning;
+			}
+
+			console.log(moment().format());
+			var sign = getSignatureKey("zw7mswmq6TqxU81QVM7XX+THBw0Ny7eGzgBkm6+s", moment().format("YYYYMMDD"), "us-west-2", "AWSECommerceService");
+			console.log(sign);
+			console.log(typeof sign);
+
+			console.log(base64Encode(sign.toString())) 	;
+
+
+
+			console.log(sign.toString(CryptoJS.enc.Base64));
+
+
+			var service = "AWSECommerceService";
+			var timestamp = new Date().toISOString();
+			var operation = "ItemSearch";
+			var secret = "zw7mswmq6TqxU81QVM7XX+THBw0Ny7eGzgBkm6+s";
+			var signature = CryptoJS.HmacSHA1(service + operation + timestamp, secret).toString(CryptoJS.enc.Base64);
+			console.log(signature);
+
+
+
+function sha256(stringToSign, secretKey) {
+  var hex = CryptoJS.HmacSHA256(stringToSign, secretKey);
+  return hex.toString(CryptoJS.enc.Base64);
+} 
+
+function timestamp() {
+    var date = new Date();
+    var y = date.getUTCFullYear().toString();
+    var m = (date.getUTCMonth() + 1).toString();
+    var d = date.getUTCDate().toString();
+    var h = date.getUTCHours().toString();
+    var min = date.getUTCMinutes().toString();
+    var s = date.getUTCSeconds().toString();
+
+    if(m.length < 2) { m = "0" + m; }
+    if(d.length < 2) { d = "0" + d; }
+    if(h.length < 2) { h = "0" + h; }
+    if(min.length < 2) { min = "0" + min; }
+    if(s.length < 2) { s = "0" + s}
+
+    var date = y + "-" + m + "-" + d;
+    var time = h + ":" + min + ":" + s;
+    return date + "T" + time + "Z";
+}
+
+function getAmazonItemInfo(barcode) {
+    var PrivateKey = "55uIMEFutrAh1YUj+5Peah+5mlK6QL1a5XbKrTaQ";
+    var PublicKey = "AKIAJT7OL5NR6LS2A66A";
+    var AssociateTag = "fdmoon-20";
+
+    var parameters = [];
+    parameters.push("AWSAccessKeyId=" + PublicKey);
+
+    // parameters.push("ItemId=" + barcode);
+    parameters.push("Keywords=leisure");
+    parameters.push("SearchIndex=Books");
+
+    parameters.push("Operation=ItemSearch");
+    parameters.push("Service=AWSECommerceService");
+    parameters.push("Timestamp=" + encodeURIComponent(moment().format()));
+    // parameters.push("Version=2011-08-01");
+
+	parameters.push("AssociateTag=" + AssociateTag);
+
+    parameters.sort();
+    var paramString = parameters.join('&');
+
+    var signingKey = "GET\n" + "webservices.amazon.com\n" + "/onca/xml\n" + paramString
+
+    var signature = sha256(signingKey,PrivateKey);
+        signature = encodeURIComponent(signature);
+
+    var amazonUrl =  "http://webservices.amazon.com/onca/xml?" + paramString + "&Signature=" + signature;
+    console.log(amazonUrl);
+}
+
+getAmazonItemInfo();
+
+
+
+function xmlToJson(xml) {
+	
+	// Create the return object
+	var obj = {};
+
+	if (xml.nodeType == 1) { // element
+		// do attributes
+		if (xml.attributes.length > 0) {
+		obj["@attributes"] = {};
+			for (var j = 0; j < xml.attributes.length; j++) {
+				var attribute = xml.attributes.item(j);
+				obj["@attributes"][attribute.nodeName] = attribute.nodeValue;
+			}
+		}
+	} else if (xml.nodeType == 3) { // text
+		obj = xml.nodeValue;
+	}
+
+	// do children
+	if (xml.hasChildNodes()) {
+		for(var i = 0; i < xml.childNodes.length; i++) {
+			var item = xml.childNodes.item(i);
+			var nodeName = item.nodeName;
+			if (typeof(obj[nodeName]) == "undefined") {
+				obj[nodeName] = xmlToJson(item);
+			} else {
+				if (typeof(obj[nodeName].push) == "undefined") {
+					var old = obj[nodeName];
+					obj[nodeName] = [];
+					obj[nodeName].push(old);
+				}
+				obj[nodeName].push(xmlToJson(item));
+			}
+		}
+	}
+	return obj;
+};
+
+
+var xml = '<OperationRequest><HTTPHeaders>\
+<Header Name="UserAgent" Value="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) \Chrome/61.0.3163.100 Safari/537.36"/>\
+</HTTPHeaders>\
+<RequestId>771771c5-4406-48c1-99e0-c4924cb0badc</RequestId>\
+<Arguments>...</Arguments>\
+<RequestProcessingTime>0.0924353540000000</RequestProcessingTime>\
+</OperationRequest>';
+
+var x2js = new X2JS();
+function convertXml2JSon() {
+    return JSON.stringify(x2js.xml_str2json(xml));
+}
+
+var json     = JSON.parse(convertXml2JSon());
+
+console.log(json);
+console.log(typeof json);
+
+
+
+		});
+	</script>
+
+</body>
+</html>
