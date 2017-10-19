@@ -65,6 +65,14 @@ $(document).ready(function() {
 			var response = convertXml2JSon(resp);
 			console.log(typeof response);
 			console.log(response);
+			console.log(typeof resp.documentElement);
+			console.log(resp.documentElement);
+			console.log("========================");
+
+			for(key in resp.documentElement) {
+				console.log(key + " => ");
+				console.log(resp.documentElement[key]);
+			}
 		});
 
 
