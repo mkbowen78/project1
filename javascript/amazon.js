@@ -1,9 +1,24 @@
 $(document).ready(function() {
+	// Initialize Firebase
+	var config = {
+		apiKey: "AIzaSyCT0d8Wy8DXcIsYQp3hvc22dmz2GDuCZqU",
+		authDomain: "campbase-c64d6.firebaseapp.com",
+		databaseURL: "https://campbase-c64d6.firebaseio.com",
+		projectId: "campbase-c64d6",
+		storageBucket: "",
+		messagingSenderId: "343604388573"
+	};
+
+	firebase.initializeApp(config);
+
+	var database = firebase.database();	
+
 	function sha256(stringToSign, secretKey) {
 	  var hex = CryptoJS.HmacSHA256(stringToSign, secretKey);
 	  return hex.toString(CryptoJS.enc.Base64);
 	} 
 
+	// Create ItemSearch query (AWS Product Advertising API)
 	function getAmazonItemSearch(keyword, category) {
 		var PrivateKey = "55uIMEFutrAh1YUj+5Peah+5mlK6QL1a5XbKrTaQ";
 		var PublicKey = "AKIAJT7OL5NR6LS2A66A";
@@ -13,6 +28,9 @@ $(document).ready(function() {
 		parameters.push("AWSAccessKeyId=" + PublicKey);
 
 		parameters.push("Keywords=" + encodeURI(keyword));
+		
+		// Valid values for SearchIndex
+		// [ 'All','Wine','Wireless','ArtsAndCrafts','Miscellaneous','Electronics','Jewelry','MobileApps','Photo','Shoes','KindleStore','Automotive','Vehicles','Pantry','MusicalInstruments','DigitalMusic','GiftCards','FashionBaby','FashionGirls','GourmetFood','HomeGarden','MusicTracks','UnboxVideo','FashionWomen','VideoGames','FashionMen','Kitchen','Video','Software','Beauty','Grocery',,'FashionBoys','Industrial','PetSupplies','OfficeProducts','Magazines','Watches','Luggage','OutdoorLiving','Toys','SportingGoods','PCHardware','Movies','Books','Collectibles','Handmade','VHS','MP3Downloads','Fashion','Tools','Baby','Apparel','Marketplace','DVD','Appliances','Music','LawnAndGarden','WirelessAccessories','Blended','HealthPersonalCare','Classical' ]
 		parameters.push("SearchIndex=" + category);
 
 		parameters.push("Operation=ItemSearch");
@@ -34,13 +52,37 @@ $(document).ready(function() {
 		return amazonUrl;
 	}
 
+	// Create ItemLookup query (AWS Product Advertising API)
+	function getAmazonItemLookup(id) {
+		var PrivateKey = "55uIMEFutrAh1YUj+5Peah+5mlK6QL1a5XbKrTaQ";
+		var PublicKey = "AKIAJT7OL5NR6LS2A66A";
+		var AssociateTag = "fdmoon-20";
 
-	function convertXml2JSon(xml) {
-		var x2js = new X2JS();
-	    var json = JSON.parse(JSON.stringify(x2js.xml_str2json(xml)));
-	    return json;
+		var parameters = [];
+		parameters.push("AWSAccessKeyId=" + PublicKey);
+
+		parameters.push("ItemId=" + id);
+
+		parameters.push("Operation=ItemLookup");
+		parameters.push("Service=AWSECommerceService");
+		parameters.push("Timestamp=" + encodeURIComponent(moment().format()));
+
+		parameters.push("AssociateTag=" + AssociateTag);
+
+		parameters.sort();
+		var paramString = parameters.join('&');
+
+		var signingKey = "GET\n" + "webservices.amazon.com\n" + "/onca/xml\n" + paramString;
+
+		var signature = sha256(signingKey,PrivateKey);
+		    signature = encodeURIComponent(signature);
+
+		var amazonUrl =  "http://webservices.amazon.com/onca/xml?" + paramString + "&Signature=" + signature;
+
+		return amazonUrl;
 	}
 
+	// When "Search" button is clicked
 	$("#select-search").on("click", function(event) {
 		// prevent form from submitting
 		event.preventDefault();
@@ -48,8 +90,6 @@ $(document).ready(function() {
 		// Retrieve data
 		var key = $("#data-keyword").val().trim();
 		var cat = $("#data-category").val().trim();
-
-// The value you specified for SearchIndex is invalid. Valid values include [ 'All','Wine','Wireless','ArtsAndCrafts','Miscellaneous','Electronics','Jewelry','MobileApps','Photo','Shoes','KindleStore','Automotive','Vehicles','Pantry','MusicalInstruments','DigitalMusic','GiftCards','FashionBaby','FashionGirls','GourmetFood','HomeGarden','MusicTracks','UnboxVideo','FashionWomen','VideoGames','FashionMen','Kitchen','Video','Software','Beauty','Grocery',,'FashionBoys','Industrial','PetSupplies','OfficeProducts','Magazines','Watches','Luggage','OutdoorLiving','Toys','SportingGoods','PCHardware','Movies','Books','Collectibles','Handmade','VHS','MP3Downloads','Fashion','Tools','Baby','Apparel','Marketplace','DVD','Appliances','Music','LawnAndGarden','WirelessAccessories','Blended','HealthPersonalCare','Classical' ]		
 
 		var queryURL = getAmazonItemSearch(key, cat);
 		console.log(queryURL);
@@ -59,74 +99,81 @@ $(document).ready(function() {
 		$.ajax({
 			url: queryURL,
 			method: "GET",
+			custom: key
 			// dataType: 'jsonp'
 		}).done(function(resp) {
+			// clear data in Firebase
+			database.ref("/AmazonSearchItems").set({});
 
-			var response = convertXml2JSon(resp);
-			console.log(typeof response);
-			console.log(response);
-			console.log(typeof resp.documentElement);
-			console.log(resp.documentElement);
-			console.log("========================");
+			database.ref("/AmazonSearchItems/Keyword").set(this.custom);
 
-			for(key in resp.documentElement) {
-				console.log(key + " => ");
-				console.log(resp.documentElement[key]);
+			//resp.documentElement.childNodes[1].childNodes
+			//.....ItemSearchResponse
+			//.....................Items
+			//...................................Item
+			for(var i=4; i<resp.documentElement.childNodes[1].childNodes.length; i++) {
+
+				var childData = resp.documentElement.childNodes[1].childNodes[i];
+
+				// ASIN
+				var asin = childData.childNodes[0].childNodes[0].nodeValue;
+				// DetailPageURL
+				var pageUrl = childData.childNodes[1].childNodes[0].nodeValue;
+
+				var childPos;
+				if(pageUrl.indexOf("http") !== -1) {
+					childPos = childData.childNodes[3];
+				}
+				else {
+					pageUrl = childData.childNodes[2].childNodes[0].nodeValue;
+
+					childPos = childData.childNodes[4];
+				}
+
+				// Product Group
+				var productGrp = childPos.childNodes[childPos.childNodes.length-2].childNodes[0].nodeValue;
+				// Title
+				var title = childPos.childNodes[childPos.childNodes.length-1].childNodes[0].nodeValue;
+
+				database.ref("/AmazonSearchItems").push({
+					asin: asin,
+					title: title,
+					group: productGrp,
+					url: pageUrl
+				});
 			}
 		});
 
-
-// // Create the XHR object.
-// function createCORSRequest(method, url) {
-//   var xhr = new XMLHttpRequest();
-//   if ("withCredentials" in xhr) {
-//     // XHR for Chrome/Firefox/Opera/Safari.
-//     xhr.open(method, url, true);
-//   } else if (typeof XDomainRequest != "undefined") {
-//     // XDomainRequest for IE.
-//     xhr = new XDomainRequest();
-//     xhr.open(method, url);
-//   } else {
-//     // CORS not supported.
-//     xhr = null;
-//   }
-//   return xhr;
-// }
-
-// // Helper method to parse the title tag from the response.
-// function getTitle(text) {
-//   return text.match('<title>(.*)?</title>')[1];
-// }
-
-// // Make the actual CORS request.
-// function makeCorsRequest() {
-//   // This is a sample server that supports CORS.
-//   // var url = 'http://html5rocks-cors.s3-website-us-east-1.amazonaws.com/index.html';
-
-//   var xhr = createCORSRequest('GET', queryURL);
-//   if (!xhr) {
-//     alert('CORS not supported');
-//     return;
-//   }
-
-//   // Response handlers.
-//   xhr.onload = function() {
-//     var text = xhr.responseText;
-//     var title = getTitle(text);
-//     alert('Response from CORS request to ' + url + ': ' + title);
-//   };
-
-//   xhr.onerror = function() {
-//     alert('Woops, there was an error making the request.');
-//   };
-
-//   xhr.send();
-// }
-
-// makeCorsRequest();
-
 		// Clear each field
-		// $("#data-keyword").val("");
-		// $("#data-category").val("");
+		$("#data-keyword").val("");
+		$("#data-category").val("All");
 	});
+
+	// When data in AmazonSearchItems is changed
+	database.ref("/AmazonSearchItems").on("value", function(snap) {
+		// Clear table
+		$("#display-search").empty();
+
+		// Add data to table
+		snap.forEach(function(childsnap) {
+			if(childsnap.key !== "Keyword") {
+				var info = childsnap.val();
+
+				var div = $("<div class='well'>");
+				div.append("<h4><strong>" + info.title + "</strong><h4>");
+				div.append("<p>ASIN: "+ info.asin +"</p>");
+				div.append("<p>Product Group: "+ info.group +"</p>");
+				var a = $("<a>");
+				a.attr("href", info.url);
+				a.text(info.url);
+				div.append(a);
+				// div.append("<iframe src='" + info.pageUrl + "'></iframe>");
+
+				$("#display-search").append(div);				
+			}
+			else {
+				$("#data-keyword").val(childsnap.val());
+			}
+		});
+	});	
 });
