@@ -1,17 +1,21 @@
+// Initialize Firebase
+var config = {
+	apiKey: "AIzaSyCT0d8Wy8DXcIsYQp3hvc22dmz2GDuCZqU",
+	authDomain: "campbase-c64d6.firebaseapp.com",
+	databaseURL: "https://campbase-c64d6.firebaseio.com",
+	projectId: "campbase-c64d6",
+	storageBucket: "",
+	messagingSenderId: "343604388573"
+};
+
+firebase.initializeApp(config);
+
+var PrivateKey = "55uIMEFutrAh1YUj+5Peah+5mlK6QL1a5XbKrTaQ";
+var PublicKey = "AKIAJT7OL5NR6LS2A66A";
+var AssociateTag = "fdmoon-20";
+
 $(document).ready(function() {
-	// Initialize Firebase
-	var config = {
-		apiKey: "AIzaSyCT0d8Wy8DXcIsYQp3hvc22dmz2GDuCZqU",
-		authDomain: "campbase-c64d6.firebaseapp.com",
-		databaseURL: "https://campbase-c64d6.firebaseio.com",
-		projectId: "campbase-c64d6",
-		storageBucket: "",
-		messagingSenderId: "343604388573"
-	};
-
-	firebase.initializeApp(config);
-
-	var database = firebase.database();	
+	var database = firebase.database();
 
 	function sha256(stringToSign, secretKey) {
 	  var hex = CryptoJS.HmacSHA256(stringToSign, secretKey);
@@ -20,10 +24,6 @@ $(document).ready(function() {
 
 	// Create ItemSearch query (AWS Product Advertising API)
 	function getAmazonItemSearch(keyword, category) {
-		var PrivateKey = "55uIMEFutrAh1YUj+5Peah+5mlK6QL1a5XbKrTaQ";
-		var PublicKey = "AKIAJT7OL5NR6LS2A66A";
-		var AssociateTag = "fdmoon-20";
-
 		var parameters = [];
 		parameters.push("AWSAccessKeyId=" + PublicKey);
 
@@ -54,10 +54,6 @@ $(document).ready(function() {
 
 	// Create ItemLookup query (AWS Product Advertising API)
 	function getAmazonItemLookup(id) {
-		var PrivateKey = "55uIMEFutrAh1YUj+5Peah+5mlK6QL1a5XbKrTaQ";
-		var PublicKey = "AKIAJT7OL5NR6LS2A66A";
-		var AssociateTag = "fdmoon-20";
-
 		var parameters = [];
 		parameters.push("AWSAccessKeyId=" + PublicKey);
 
@@ -94,14 +90,14 @@ $(document).ready(function() {
 		var queryURL = getAmazonItemSearch(key, cat);
 		console.log(queryURL);
 
-		// ItemLookup
-
 		$.ajax({
 			url: queryURL,
 			method: "GET",
 			custom: key
 			// dataType: 'jsonp'
 		}).done(function(resp) {
+			console.log(resp);
+
 			// clear data in Firebase
 			database.ref("/AmazonSearchItems").set({});
 
@@ -142,34 +138,41 @@ $(document).ready(function() {
 					url: pageUrl
 				});
 			}
+		}).fail(function(jqXHR, textStatus) {
+			$("#display-amazon").empty();
+
+			var div = $("<div class='well'>");
+			div.append("<p>"+ jqXHR +"</p>");
+			div.append("<p>"+ textStatus +"</p>");
+			
+			$("#display-amazon").append(div);			
 		});
-
-		// Clear each field
-		$("#data-keyword").val("");
-		$("#data-category").val("All");
 	});
-
+	
 	// When data in AmazonSearchItems is changed
 	database.ref("/AmazonSearchItems").on("value", function(snap) {
 		// Clear table
-		$("#display-search").empty();
+		$("#display-amazon").empty();
 
 		// Add data to table
 		snap.forEach(function(childsnap) {
 			if(childsnap.key !== "Keyword") {
 				var info = childsnap.val();
 
-				var div = $("<div class='well'>");
-				div.append("<h4><strong>" + info.title + "</strong><h4>");
-				div.append("<p>ASIN: "+ info.asin +"</p>");
-				div.append("<p>Product Group: "+ info.group +"</p>");
-				var a = $("<a>");
+				var divMain = $("<div class='well'>");
+				divMain.append("<h4><strong>" + info.title + "</strong><h4>");
+				divMain.append("<p>ASIN: "+ info.asin +"</p>");
+				divMain.append("<p>Product Group: "+ info.group +"</p>");
+
+				var divSub = $("<div>");
+				var a = $("<a target='_blank'>");
 				a.attr("href", info.url);
 				a.text(info.url);
-				div.append(a);
-				// div.append("<iframe src='" + info.pageUrl + "'></iframe>");
+				divSub.append(a);
+				divMain.append(divSub);
+				// divMain.append("<iframe src='" + info.pageUrl + "'></iframe>");
 
-				$("#display-search").append(div);				
+				$("#display-amazon").append(divMain);
 			}
 			else {
 				$("#data-keyword").val(childsnap.val());
@@ -177,3 +180,4 @@ $(document).ready(function() {
 		});
 	});	
 });
+
