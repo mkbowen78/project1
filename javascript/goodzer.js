@@ -1,13 +1,55 @@
 var apiKey = "2e5bc66f2572e9f8f5a2444ecc8bc806";
 
-var lat = 30.2672;
-var lng = 97.7431;
+var map;
+var markers = [];   // Create a marker array to hold your markers
+
+var myLatLng = {lat: 30.2672, lng: -97.7431};
+
+function initMap() {
+    map = new google.maps.Map(document.getElementById('googlemap'), {
+        center: myLatLng,
+        zoom: 10
+    });
+
+    resetMarker();
+}
+
+function refreshMap() {
+    // Set re-center and refresh map
+    map.setCenter(myLatLng);
+    google.maps.event.trigger(map, 'resize');
+}
+
+function resetMarker() {
+    // Loop through markers and set map to null for each
+    for (var i=0; i<markers.length; i++) {
+        markers[i].setMap(null);
+    }
+
+    // Reset the markers array
+    markers = [];    
+}
+
+function setMarker(lat, lng, name) {
+    // Create a marker and set its position.
+    var marker = new google.maps.Marker({
+        map: map,
+        position: {
+            lat: lat,
+            lng: lng
+        },
+        title: name
+    });
+
+    // Push marker to markers array
+    markers.push(marker);    
+}
 
 $(document).ready(function() {
     var database = firebase.database();
 
     function runQuery(key) {
-        var queryURL = "https://api.goodzer.com/products/v0.1/search_stores/?query=" + key + "&lat=" + lat + "&lng=-" + lng + "&radius=5&priceRange=30:120&apiKey=" + apiKey;
+        var queryURL = "https://api.goodzer.com/products/v0.1/search_stores/?query=" + key + "&lat=" + myLatLng.lat + "&lng=-" + myLatLng.lng + "&radius=5&priceRange=30:120&apiKey=" + apiKey;
         console.log(queryURL);
 
         // heroku workaround for Cors
@@ -65,6 +107,8 @@ $(document).ready(function() {
         // Clear table
         $("#display-goodzer").empty();
 
+        resetMarker();
+
         // Add data to table
         snap.forEach(function(childsnap) {
             var info = childsnap.val();
@@ -97,7 +141,21 @@ $(document).ready(function() {
             divMain.append(divSub);
 
             $("#display-goodzer").append(divMain);
+
+            var storeInfo = info.store + "\n" + addr + "\n" + info.location.phone;
+            setMarker(info.location.lat, info.location.lng, storeInfo);
         });
+
+        refreshMap();
     });
+
+    database.ref("/UserPosition").on("value", function(snap) {
+        var info = snap.val();
+
+        myLatLng.lat = info.lat;
+        myLatLng.lng = info.lng;
+
+        refreshMap();
+    });    
 });
 
