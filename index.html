@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 	<title>Choicr</title>
 
 	<link rel="icon" sizes="32x32" href="images/choicr_icon.png">
@@ -24,19 +27,26 @@
 	<div class="container">
 		<section class="jumbotron">
 			<h1>Choicr</h1>
-			<p>Gives people searching for products online a simultaneous local option. Product searches return results from both the Amazon API and Goodzer.</p>
+			<p>Gives people searching for products online a simultaneous local option. Product searches return results from both the Amazon API and Goodzer (local shopping API.)</p>
 		</section>
 
 		<section class="panel panel-primary">
 			<div class="panel-heading">Search</div>
 			<div class="panel-body">
 				<form id="search-form">
-					<label for="data-keyword">Keyword</label><br>
-					<input type="text" class="form-control" id="data-keyword" required><br>
-					<label for="data-category">Category</label><br>
-					<input type="text" class="form-control" id="data-category" required disabled="disabled" value="All"><br>
+					<div class="row">
+						<div class="col-md-8">
+							<label for="data-keyword">Keyword</label><br>
+							<input type="text" class="form-control" id="data-keyword" required><br>
+							<label for="data-category">Category</label><br>
+							<input type="text" class="form-control" id="data-category" required disabled="disabled" value="All"><br>
 
-					<button class="btn btn-primary btn-md" id="select-search">Submit</button>
+							<button class="btn btn-primary btn-md" id="select-search">Submit</button>
+						</div>
+						<div class="col-md-4">
+							<div id="googlemap"></div>
+						</div>
+					</div>
 				</form>
 			</div>
 		</section>
@@ -56,5 +66,7 @@
 			</div>
 		</section>
 	</div>
+
+	<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBCaUKx3LFuJlEUYFvQuYHYavFv41PO44Q&callback=initMap" async defer></script>	
 </body>
 </html>
