@@ -139,12 +139,6 @@ $(document).ready(function() {
 
             divMain.append("<p>$ " + info.product.price + " at " + info.store +"</p>");
 
-//             "city": "Austin",
-// "state": "TX",
-// "address": "1201 Barbara Jordan Blvd",
-
-// "phone": "(512) 469-0501",
-// "zipcode": "78723"
             var addr = info.location.address + ", " + info.location.city + ", " + info.location.state + " " + info.location.zipcode;
             divMain.append("<p>" + addr + "</p>");
             divMain.append("<p>Tel: " + info.location.phone + "</p>");
