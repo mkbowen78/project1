@@ -1,13 +1,40 @@
+
+
+// Create a variable to reference the database.
+// ^^^^^^^Firebase^^^^^^^
+
 var apiKey = "2e5bc66f2572e9f8f5a2444ecc8bc806";
 
 var lat = 30.2672;
-var lng = 97.7431;
+var lng = -97.7431;
+var userLat = lat;
+var userLng = lng;
+
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(function(position) {
+    // $("#data").html("latitude: " + position.coords.latitude + "<br>longitude: " + position.coords.longitude);
+    console.log(position.coords.latitude);
+    console.log(position.coords.longitude);
+    userLat = position.coords.latitude;
+    userLng = position.coords.longitude;
+
+  });
+}
+
+else {
+  console.log("no location");
+}
 
 $(document).ready(function() {
     var database = firebase.database();
+    database.ref("/UserPosition").set({
+      lat: userLat,
+      lng: userLng
+});
+
 
     function runQuery(key) {
-        var queryURL = "https://api.goodzer.com/products/v0.1/search_stores/?query=" + key + "&lat=" + lat + "&lng=-" + lng + "&radius=5&priceRange=30:120&apiKey=" + apiKey;
+        var queryURL = "https://api.goodzer.com/products/v0.1/search_stores/?query=" + key + "&lat=" + userLat + "&lng=-" + userLng + "&radius=5&priceRange=30:120&apiKey=" + apiKey;
         console.log(queryURL);
 
         // heroku workaround for Cors
@@ -58,6 +85,7 @@ $(document).ready(function() {
         key = $("#data-keyword").val().trim();
 
         runQuery(key);
+
     });
 
     // When data in GoodzerSearchItems is changed
@@ -100,4 +128,3 @@ $(document).ready(function() {
         });
     });
 });
-
