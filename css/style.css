@@ -69,3 +69,10 @@ div {
 	height: 200px;
 }
 
+@media screen and (max-width: 992px) {
+/*@media screen and (max-width: 768px) {*/
+	#googlemap {
+		margin-top: 20px;
+	}
+}
+

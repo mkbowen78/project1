@@ -1,19 +1,12 @@
-var apiKey = "2e5bc66f2572e9f8f5a2444ecc8bc806";
+// Initialized Firebase in amazon.js
+var database = firebase.database();
+
+var apiKey = "2e5bc66f2572e9f8f5a2444ecc8bc806";    // for Goodzer API
 
 var map;
 var markers = [];   // Create a marker array to hold your markers
 
 var myLatLng = {lat: 30.2672, lng: -97.7431};
-
-if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(function(position) {
-        // $("#data").html("latitude: " + position.coords.latitude + "<br>longitude: " + position.coords.longitude);
-        console.log(position.coords.latitude);
-        console.log(position.coords.longitude);
-        myLatLng.lat = position.coords.latitude;
-        myLatLng.lng = position.coords.longitude;
-    });
-}
 
 function initMap() {
     map = new google.maps.Map(document.getElementById('googlemap'), {
@@ -56,12 +49,36 @@ function setMarker(lat, lng, name) {
 }
 
 $(document).ready(function() {
-    var database = firebase.database();
-    
-    database.ref("/UserPosition").set({
-      lat: myLatLng.lat,
-      lng: myLatLng.lng
-    });
+    $("#display-location").text("(Latitude, Longitude) = (" + myLatLng.lat + ", " + myLatLng.lng + ")");
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            $("#display-location").text("(Latitude, Longitude) = (" + position.coords.latitude + ", " + position.coords.longitude + ")");
+
+            myLatLng.lat = position.coords.latitude;
+            myLatLng.lng = position.coords.longitude;
+
+            database.ref("/UserPosition").set(myLatLng);
+        }, function(error) {
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    $("#display-location").text("User denied the request for Geolocation.");
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    $("#display-location").text("Location information is unavailable.");
+                    break;
+                case error.TIMEOUT:
+                    $("#display-location").text("The request to get user location timed out.");
+                    break;
+                case error.UNKNOWN_ERROR:
+                    $("#display-location").text("An unknown error occurred.");
+                    break;
+            }
+        });
+    }
+    else {
+        $("#display-location").text("Geolocation is not supported by this browser.");
+    }
 
     function runQuery(key) {
         var queryURL = "https://api.goodzer.com/products/v0.1/search_stores/?query=" + key + "&lat=" + parseFloat(myLatLng.lat) + "&lng=" + parseFloat(myLatLng.lng) + "&radius=5&priceRange=30:120&apiKey=" + apiKey;
@@ -160,11 +177,9 @@ $(document).ready(function() {
     });
 
     database.ref("/UserPosition").on("value", function(snap) {
-        var info = snap.val();
-
-        myLatLng.lat = info.lat;
-        myLatLng.lng = info.lng;
+        myLatLng = snap.val();
 
         refreshMap();
     });    
 });
+
