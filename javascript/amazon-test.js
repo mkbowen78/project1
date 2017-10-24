@@ -10,12 +10,9 @@ var config = {
 
 firebase.initializeApp(config);
 
-// for AWS Product Advertising API
 var PrivateKey = "55uIMEFutrAh1YUj+5Peah+5mlK6QL1a5XbKrTaQ";
 var PublicKey = "AKIAJT7OL5NR6LS2A66A";
 var AssociateTag = "fdmoon-20";
-
-var isInitReading = true;
 
 $(document).ready(function() {
 	var database = firebase.database();
@@ -61,9 +58,9 @@ $(document).ready(function() {
 		parameters.push("AWSAccessKeyId=" + PublicKey);
 
 		parameters.push("ItemId=" + id);
-		parameters.push("ResponseGroup=Images");
 
 		parameters.push("Operation=ItemLookup");
+		parameters.push("ResponseGroup=Images");
 		parameters.push("Service=AWSECommerceService");
 		parameters.push("Timestamp=" + encodeURIComponent(moment().format()));
 
@@ -100,62 +97,63 @@ $(document).ready(function() {
 			custom: key
 			// dataType: 'jsonp'
 		}).done(function(resp) {
-		console.log(resp);
+			console.log(resp);
 
-		// clear all search items and images in Firebase
-		database.ref("/AmazonSearchItems").set({});
-		database.ref("/AmazonSearchItemImages").set({});
+			// clear data in Firebase
+			database.ref("/AmazonSearchItems-Test").set({});
 
-		database.ref("/AmazonSearchItems/Keyword").set(this.custom);
+			database.ref("/AmazonSearchItems-Test/Keyword").set(this.custom);
 
-		//resp.documentElement.childNodes[1].childNodes[4 ~]
-		//.....ItemSearchResponse
-		//.....................Items
-		//...................................Item
-		for(var i=4; i<resp.documentElement.childNodes[1].childNodes.length; i++) {
+			//resp.documentElement.childNodes[1].childNodes
+			//.....ItemSearchResponse
+			//.....................Items
+			//...................................Item
+			for(var i=4; i<resp.documentElement.childNodes[1].childNodes.length; i++) {
 
-			var childData = resp.documentElement.childNodes[1].childNodes[i];
+				var childData = resp.documentElement.childNodes[1].childNodes[i];
 
-			// ASIN
-			var asin = childData.childNodes[0].childNodes[0].nodeValue;
-			// DetailPageURL
-			var pageUrl = childData.childNodes[1].childNodes[0].nodeValue;
+				// ASIN
+				var asin = childData.childNodes[0].childNodes[0].nodeValue;
+				console.log("[" + (i-3) + "] ===>");
+				console.log(getAmazonItemLookup(asin));
+				// DetailPageURL
+				var pageUrl = childData.childNodes[1].childNodes[0].nodeValue;
 
-			var childPos;
-			if(pageUrl.indexOf("http") !== -1) {
-				childPos = childData.childNodes[3];
+				var childPos;
+				if(pageUrl.indexOf("http") !== -1) {
+					childPos = childData.childNodes[3];
+				}
+				else {
+					pageUrl = childData.childNodes[2].childNodes[0].nodeValue;
+
+					childPos = childData.childNodes[4];
+				}
+
+				// Product Group
+				var productGrp = childPos.childNodes[childPos.childNodes.length-2].childNodes[0].nodeValue;
+				// Title
+				var title = childPos.childNodes[childPos.childNodes.length-1].childNodes[0].nodeValue;
+
+				database.ref("/AmazonSearchItems-Test").push({
+					asin: asin,
+					title: title,
+					group: productGrp,
+					url: pageUrl
+				});
 			}
-			else {
-				pageUrl = childData.childNodes[2].childNodes[0].nodeValue;
-
-				childPos = childData.childNodes[4];
-			}
-
-			// Product Group
-			var productGrp = childPos.childNodes[childPos.childNodes.length-2].childNodes[0].nodeValue;
-			// Title
-			var title = childPos.childNodes[childPos.childNodes.length-1].childNodes[0].nodeValue;
-
-			database.ref("/AmazonSearchItems").push({
-				asin: asin,
-				title: title,
-				group: productGrp,
-				url: pageUrl
-			});
-		}
-	}).fail(function(jqXHR, textStatus) {
+		}).fail(function(jqXHR, textStatus) {
 			$("#display-amazon").empty();
 
 			var div = $("<div class='well'>");
 			div.append("<p>"+ jqXHR +"</p>");
 			div.append("<p>"+ textStatus +"</p>");
 			
-			$("#display-amazon").append(div);
+			$("#display-amazon").append(div);			
 		});
 	});
 	
-	// When data in AmazonSearchItems is changed
-	database.ref("/AmazonSearchItems").on("value", function(snap) {
+	// When data in AmazonSearchItems-Test is changed
+	database.ref("/AmazonSearchItems-Test").on("value", function(snap) {
 		// Clear table
 		$("#display-amazon").empty();
 
@@ -164,15 +162,8 @@ $(document).ready(function() {
 			if(childsnap.key !== "Keyword") {
 				var info = childsnap.val();
 
-				var divMain = $("<div class='well clearfix'>");
+				var divMain = $("<div class='well'>");
 				divMain.append("<h4><strong>" + info.title + "</strong><h4>");
-
-	            var img = $("<img>");
-	            img.addClass("item-img");
-	            img.attr("id", info.asin);
-	            img.attr("src", "");
-	            divMain.append(img);
-
 				divMain.append("<p>ASIN: "+ info.asin +"</p>");
 				divMain.append("<p>Product Group: "+ info.group +"</p>");
 
@@ -185,55 +176,10 @@ $(document).ready(function() {
 				// divMain.append("<iframe src='" + info.pageUrl + "'></iframe>");
 
 				$("#display-amazon").append(divMain);
-
-				if(!isInitReading) {
-					var subQuery = getAmazonItemLookup(info.asin);
-					$.ajax({
-						url: subQuery,
-						method: "GET",
-						custom: info.asin
-						// dataType: 'jsonp'
-					}).done(function(resp) {
-						console.log(resp);
-
-						//resp.documentElement.childNodes[1].childNodes[1]
-						//.....ItemLookupResponse
-						//.....................Items
-						//...................................Item
-						var childData = resp.documentElement.childNodes[1].childNodes[1];
-
-						// Get MediumImage-URL
-						var imageUrl = "";
-						if(childData.childNodes[1].childNodes[0].nodeValue === null) {
-							imageUrl = childData.childNodes[2].childNodes[0].childNodes[0].nodeValue;
-						}
-						else {
-							imageUrl = childData.childNodes[3].childNodes[0].childNodes[0].nodeValue;
-						}
-
-						database.ref("/AmazonSearchItemImages/" + this.custom).set({
-							asin: this.custom,
-							url: imageUrl
-						});
-					});
-				}
 			}
 			else {
 				$("#data-keyword").val(childsnap.val());
 			}
-		});
-
-		isInitReading = false;
-	});
-
-	// When data in AmazonSearchItemImages is changed
-	database.ref("/AmazonSearchItemImages").on("value", function(snap) {
-		// Add Images
-		snap.forEach(function(childsnap) {
-			var info = childsnap.val();
-
-            var img = $("#" + info.asin);
-            img.attr("src", info.url);
 		});
 	});	
 });
