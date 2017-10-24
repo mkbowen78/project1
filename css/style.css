@@ -53,6 +53,9 @@ div {
 
 .item-img {
 	float: right;
+	width: 130px;
+	height: auto;
+	margin: 0 0 5px 5px;
 }
 
 .clearfix::after {
