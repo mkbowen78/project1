@@ -10,9 +10,12 @@ var config = {
 
 firebase.initializeApp(config);
 
+// for AWS Product Advertising API
 var PrivateKey = "55uIMEFutrAh1YUj+5Peah+5mlK6QL1a5XbKrTaQ";
 var PublicKey = "AKIAJT7OL5NR6LS2A66A";
 var AssociateTag = "fdmoon-20";
+
+var isInitReading = true;
 
 $(document).ready(function() {
 	var database = firebase.database();
@@ -183,40 +186,44 @@ $(document).ready(function() {
 
 				$("#display-amazon").append(divMain);
 
-				var subQuery = getAmazonItemLookup(info.asin);
-				$.ajax({
-					url: subQuery,
-					method: "GET",
-					custom: info.asin
-					// dataType: 'jsonp'
-				}).done(function(resp) {
-					console.log(resp);
+				if(!isInitReading) {
+					var subQuery = getAmazonItemLookup(info.asin);
+					$.ajax({
+						url: subQuery,
+						method: "GET",
+						custom: info.asin
+						// dataType: 'jsonp'
+					}).done(function(resp) {
+						console.log(resp);
 
-					//resp.documentElement.childNodes[1].childNodes[1]
-					//.....ItemLookupResponse
-					//.....................Items
-					//...................................Item
-					var childData = resp.documentElement.childNodes[1].childNodes[1];
+						//resp.documentElement.childNodes[1].childNodes[1]
+						//.....ItemLookupResponse
+						//.....................Items
+						//...................................Item
+						var childData = resp.documentElement.childNodes[1].childNodes[1];
 
-					// Get MediumImage-URL
-					var imageUrl = "";
-					if(childData.childNodes[1].childNodes[0].nodeValue === null) {
-						imageUrl = childData.childNodes[2].childNodes[0].childNodes[0].nodeValue;
-					}
-					else {
-						imageUrl = childData.childNodes[3].childNodes[0].childNodes[0].nodeValue;
-					}
+						// Get MediumImage-URL
+						var imageUrl = "";
+						if(childData.childNodes[1].childNodes[0].nodeValue === null) {
+							imageUrl = childData.childNodes[2].childNodes[0].childNodes[0].nodeValue;
+						}
+						else {
+							imageUrl = childData.childNodes[3].childNodes[0].childNodes[0].nodeValue;
+						}
 
-					database.ref("/AmazonSearchItemImages/" + this.custom).set({
-						asin: this.custom,
-						url: imageUrl
+						database.ref("/AmazonSearchItemImages/" + this.custom).set({
+							asin: this.custom,
+							url: imageUrl
+						});
 					});
-				});				
+				}
 			}
 			else {
 				$("#data-keyword").val(childsnap.val());
 			}
 		});
+
+		isInitReading = false;
 	});
 
 	// When data in AmazonSearchItemImages is changed
