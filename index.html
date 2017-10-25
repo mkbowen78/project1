@@ -1,10 +1,12 @@
 <!DOCTYPE html>
+
 <html>
+
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-	<title>Choicr</title>
+	<title>Welcome to CHOOSR</title>
 
 	<link rel="icon" sizes="32x32" href="images/choicr_icon.png">
 
@@ -22,14 +24,52 @@
 
 	<script type="text/javascript" src="javascript/amazon.js"></script>
 	<script type="text/javascript" src="javascript/goodzer.js"></script>
+
+	<!-- intro page dependencies -->
+	<script src="http://code.jquery.com/jquery-1.10.2.js"></script>
+	<script src="http://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+	<script src="js/jquery.waypoints.min.js" type="text/javascript"></script>
+	<script src="js/waypoints.js" type="text/javascript"></script>
+
+	<link rel="stylesheet" href="http://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+
+	<link href="css/animate.css" rel="stylesheet" />
+	<link href="css/waypoints.css" rel="stylesheet" />
+	
+	<link href="newstyle.css" rel="stylesheet" type="text/css" />
+<!-- intro page dependencies -->
+
 </head>
 <body>
-	<div class="container">
-		<section class="jumbotron">
-			<h1>Choicr</h1>
-			<p>Gives people searching for products online a simultaneous local option. Product searches return results from both the Amazon API and Goodzer (local shopping API.)</p>
-		</section>
+<!-- intro page -->
+		<section class="intro">
+		<div class="inner">
+			<div class="content">
+<!-- logo and intro text -->
+				<section class="os-animation" data-os-animation="bounceInUp" data-os-animation-delay="0s">
+					<img src="images/choosr-logo.png" alt="">
+					<p id="intro-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque orci diam, pretium ut risus nec, sollicitudin eleifend erat. Phasellus vitae risus nulla. Aliquam sodales eget tortor eu tincidunt. Maecenas convallis placerat risus, vitae sagittis
+						leo eleifend quis.</p>
+				</section>
+<!-- end logo and intro text -->
+<!-- - - - - - - - - - - - - - -->
+<!-- search box area -->
+				<div class="home-search center-block">
+					<!-- user search input -->
+					<form id="" class="" role="form">
+						<input type="search" name="search" id="" placeholder=" What can we help you find?" class="search-input">
+						<button type="submit" id="" class="btn btn-lg">GET STARTED</button>
+					</form>
+				</div>
+	<!-- end search box area -->
+			</div>
+		</div>
+	</section>
+<!-- end top page area -->
 
+<!-- results area begins here -->
+	<div class="container">
+	&nbsp
 		<section class="panel panel-primary">
 			<div class="panel-heading">Search @ <span id="display-location"></span></div>
 			<div class="panel-body">
